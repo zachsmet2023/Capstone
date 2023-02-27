@@ -43,8 +43,8 @@ export default function App() {
       <Text>SpeakSence</Text>
     </SafeAreaView>
     
-      {!started ? <Button title='Start Speech to Text' onPress={startSpeechToText} /> : undefined}
-      {started ? <Button title='Stop Speech to Text' onPress={stopSpeechToText} /> : undefined}
+      {!started ? <Button title='Start' onPress={startSpeechToText} /> : undefined}
+      {started ? <Button title='Stop' onPress={stopSpeechToText} /> : undefined}
       {results.map((result, index) => <Text key={index}>{result}</Text>)} 
 
 
