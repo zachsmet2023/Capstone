@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, Button, View } from 'react-native';
+import { StyleSheet, Text, Button, View, SafeAreaView } from 'react-native';
 import { useEffect, useState } from 'react';
 import Voice from '@react-native-voice/voice';
 
@@ -38,9 +38,19 @@ export default function App() {
 
   return (
     <View style={styles.container}>
+
+    <SafeAreaView style={styles.headerContainer}> 
+      <Text>SpeakSence</Text>
+    </SafeAreaView>
+    
       {!started ? <Button title='Start Speech to Text' onPress={startSpeechToText} /> : undefined}
       {started ? <Button title='Stop Speech to Text' onPress={stopSpeechToText} /> : undefined}
-      {results.map((result, index) => <Text key={index}>{result}</Text>)}
+      {results.map((result, index) => <Text key={index}>{result}</Text>)} 
+
+
+
+
+
       <StatusBar style="auto" />
     </View>
   );
@@ -53,4 +63,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerContainer: {
+
+
+  }
 });
