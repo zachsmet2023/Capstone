@@ -11,7 +11,7 @@ export default function App() {
 
   //---------Varibles-------------
   let [started, setStarted] = useState(false);
-  let [results, setResults] = useState([]);
+  let [results, setResults] = useState(['Empty']);
   
 
   //----------Listeners------------ 
