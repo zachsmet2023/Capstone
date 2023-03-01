@@ -12,17 +12,20 @@ const SenseCounter = ({ wordList }) => {
   useEffect(() => {
     const words = wordList[0].split(' ');
     const newCount = countWordsInList(words);
-    setCount(newCount);
+    setCount(count+newCount);
   }, [wordList]);
 
 
   //------METHOD-----------
   const countWordsInList = (list) => {
-    console.log(list);
+    
     let count = 0;
     list.forEach((word) => {
       if (constantList.includes(word.toLowerCase())) {
+        console.log(word);
         count++;
+        let index = constantList.indexOf(word.toLowerCase());
+        constantList.splice(index,1);
       }
     });
     console.log('count:', count);
