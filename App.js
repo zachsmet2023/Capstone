@@ -58,17 +58,27 @@ export default function App() {
     <View style={styles.container}>
 
     <SafeAreaView style={styles.headerContainer}> 
-      <Text>SpeakSence</Text>
+      <Text style={styles.header}>SpeakSence</Text>
     </SafeAreaView>
 
     
-    
-      {!started ? <Button title='Start' onPress={startSpeechToText} /> : undefined}
-      {started ? <Button title='Stop' onPress={stopSpeechToText} /> : undefined}
-      {results.map((result, index) => <Text key={index}>{result}</Text>)} 
+    {!started ? 
+    <View style={styles.startBtnContainer}>
+      <Button title='Start' color={'#fff'} onPress={startSpeechToText} /> 
+    </View>
+    : undefined}
+
+    {started ? 
+      <View style={styles.stopBtnContainer}>
+        <Button title='Stop' color={'#fff'} onPress={stopSpeechToText} /> 
+      </View>
+    : undefined}
+
+
+      {results.map((result, index) => <Text style={styles.spokenWords} key={index}>{result}</Text>)} 
 
       <View>
-       <SenseCounter wordList={results} />
+       <SenseCounter  wordList={results} />
       </View>
 
 
@@ -82,12 +92,42 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#061024',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerContainer: {
+    
+
+  },
+  header: {
+    color: '#fff',
+
+  },
+  startBtnContainer: {
+    backgroundColor: '#55C89F',
+    width: 80,
+    height: 80,
+    borderRadius: 80/2,
+    alignItems: 'center',
+    justifyContent: 'center',
+
+  },
+  stopBtnContainer: {
+    backgroundColor: '#FF0000',
+    width: 80,
+    height: 80,
+    borderRadius: 80/2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  spokenWords: {
+    color: '#fff',
+    
 
 
-  }
+  },
+
+ 
 });
