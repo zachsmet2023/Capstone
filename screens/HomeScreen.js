@@ -6,7 +6,7 @@ import SenseCounter from '../components/senseCounter';
 
 
 
-const HomeScreen = ({}) => {
+const HomeScreen = ({navigation}) => {
 
 
   //---------Varibles-------------
@@ -81,7 +81,11 @@ const HomeScreen = ({}) => {
        <SenseCounter  wordList={results} />
       </View>
 
+      <View>
+        <Button title='WORDS' color={'#fff'}/>
+      </View>
 
+        
 
       <StatusBar style="auto" />
     </View>
