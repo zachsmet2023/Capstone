@@ -82,7 +82,7 @@ const HomeScreen = ({navigation}) => {
       </View>
 
       <View>
-        <Button title='WORDS' color={'#fff'}/>
+        <Button title='WORDS' color={'#fff'} onPress={() => navigation.push("Words")}/>
       </View>
 
         
