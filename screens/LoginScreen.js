@@ -1,5 +1,8 @@
 import { StyleSheet, Text, View, Button, TextInput } from 'react-native';
 import { useEffect, useState } from 'react';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import {auth} from '../firebase'
+
 
 
 export default function LoginScreen({ navigation, route }) {
@@ -10,7 +13,18 @@ let [ password, setPassword] = useState("");
 let [ errorMessage, setErrorMessage] = useState("");
     //METHODS
 
+let login = () =>{
+  if (Email != "" && password != ""){
+    signInWithEmailAndPassword(auth, Email, password)
+      .then((userCredential) => {
+        navigation.navigate("Home",{user: userCredential.user})
+      })
+      .catch((error) => {
+        setErrorMessage(error.message);
+      });
+  }
 
+}
 
 
 
@@ -21,7 +35,7 @@ let [ errorMessage, setErrorMessage] = useState("");
 
         <View style={styles.menu}>
             <Text style={styles.menuheader}>Login</Text>
-            <Text>{errorMessage}</Text>
+            <Text style={styles.errormessage}>{errorMessage}</Text>
             <TextInput style={styles.textinput} placeholder='Email' 
             placeholderTextColor='#BEBEBE'
              
@@ -33,7 +47,7 @@ let [ errorMessage, setErrorMessage] = useState("");
              secureTextEntry={true} 
              value={password} 
              onChangeText={setPassword}/>
-            <Button title='Continue' color='#fff'/>
+            <Button title='Continue' color='#fff' onPress={login}/>
         </View>
         <Button title='Register Here' onPress={() => navigation.push("SignUp")}/>
     </View>
@@ -69,5 +83,9 @@ const styles = StyleSheet.create({
         padding: 10,
         borderBottomColor: '#55C89F',
         borderBottomWidth: 1
+  },
+  errormessage: {
+    color: 'red',
+    fontSize: 20
   },
 });

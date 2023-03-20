@@ -3,6 +3,8 @@ import { StyleSheet, Text, Button, View, SafeAreaView } from 'react-native';
 import { useEffect, useState } from 'react';
 import Voice from '@react-native-voice/voice';
 import SenseCounter from '../components/senseCounter';
+import { signOut } from "firebase/auth";
+import {auth} from '../firebase'
 
 
 
@@ -50,7 +52,13 @@ const HomeScreen = ({navigation}) => {
   };
 
 
-  
+  let logOut = () =>{
+    signOut(auth).then(() => {
+      navigation.popToTop();
+    }).catch((error) => {
+      // An error happened.
+    });
+  }
 
 
   // ------------- MARKUP -------------------
@@ -83,6 +91,10 @@ const HomeScreen = ({navigation}) => {
 
       <View>
         <Button title='WORDS' color={'#fff'} onPress={() => navigation.push("Words")}/>
+      </View>
+
+      <View>
+        <Button title='Logout' onPress={logOut}/>
       </View>
 
         

@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View, Button, TextInput } from 'react-native';
 import { useEffect, useState } from 'react';
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import {auth} from '../firebase'
 
 
-const auth = getAuth();
 
 export default function SignUpScreen({ navigation, route }) {
   
@@ -29,9 +29,8 @@ let signUp = () => {
     if (password ===conPassword){
         createUserWithEmailAndPassword(auth, Email, password)
         .then((userCredential) => {
-            // Signed in 
-            const user = userCredential.user;
-            
+           
+            navigation.navigate("Home",{user: userCredential.user})
           })
           .catch((error) => {
             
