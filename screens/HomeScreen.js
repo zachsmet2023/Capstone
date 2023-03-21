@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Voice from '@react-native-voice/voice';
 import SenseCounter from '../components/senseCounter';
 import { signOut } from "firebase/auth";
-import {auth} from '../firebase'
+import { auth, db } from '../firebase';
+import { collection,doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 
@@ -14,13 +15,14 @@ const HomeScreen = ({navigation}) => {
   //---------Varibles-------------
   let [started, setStarted] = useState(false);
   let [results, setResults] = useState(['Empty']);
+  let [count, setCount] = useState(0);
   
 
   //----------Listeners------------ 
   useEffect(() => {
     Voice.onSpeechError = onSpeechError;
     Voice.onSpeechResults = onSpeechResults;
-  
+    
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
@@ -40,17 +42,23 @@ const HomeScreen = ({navigation}) => {
   const stopSpeechToText = async () => {
     await Voice.stop();
     setStarted(false);
+    sendSenseToServer();
+    
   };
 
   // Will set the results of the speech to text to results varible array
   const onSpeechResults = (result) => {
     setResults(result.value);
+
   };
 
   const onSpeechError = (error) => {
     console.log(error);
   };
 
+  const handleCountChange = (newCount) => {
+    setCount(newCount);
+  };
 
   let logOut = () =>{
     signOut(auth).then(() => {
@@ -59,6 +67,51 @@ const HomeScreen = ({navigation}) => {
       // An error happened.
     });
   }
+
+  let sendSenseToServer = async () => {
+    try {
+      const senseRef = doc(collection(db, "sense"), auth.currentUser.uid);
+      const docSnapshot = await getDoc(senseRef);
+      const currentDate = new Date();
+      const currentWeek = getWeekNumber(currentDate);
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = currentDate.getFullYear();
+  
+      let currentSense = 0;
+      let sensePerWeek = {};
+      let sensePerMonth = {};
+      let sensePerYear = {};
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+        currentSense = data.totalSense || 0;
+        sensePerWeek = data.sensePerWeek || {};
+        sensePerMonth = data.sensePerMonth || {};
+        sensePerYear = data.sensePerYear || {};
+      }
+  
+      const newSense = count;
+      const totalSense = currentSense + newSense;
+      sensePerWeek[currentWeek] = (sensePerWeek[currentWeek] || 0) + newSense;
+      sensePerMonth[currentMonth] = (sensePerMonth[currentMonth] || 0) + newSense;
+      sensePerYear[currentYear] = (sensePerYear[currentYear] || 0) + newSense;
+  
+      await setDoc(senseRef, { totalSense, sensePerWeek, sensePerMonth, sensePerYear }, { merge: true });
+      console.log("Sense value updated.");
+    } catch (e) {
+      console.error("Error updating sense value: ", e);
+    }
+  };
+  
+  //Found Online 
+  const getWeekNumber = (date) => {
+    const onejan = new Date(date.getFullYear(), 0, 1);
+    return Math.ceil((((date - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+  };
+  
+
+
+
+ 
 
 
   // ------------- MARKUP -------------------
@@ -83,17 +136,13 @@ const HomeScreen = ({navigation}) => {
     : undefined}
 
 
-      {results.map((result, index) => <Text style={styles.spokenWords} key={index}>{result}</Text>)} 
-
       <View>
-       <SenseCounter  wordList={results} />
+       <SenseCounter  wordList={results} onCountChange={handleCountChange} resetCount={started}/>
+      
       </View>
 
       <View>
-        <Button title='WORDS' color={'#fff'} onPress={() => navigation.push("Words")}/>
-      </View>
-
-      <View>
+        <Button title='Words Page' onPress={() => navigation.push("Words")}/>
         <Button title='Logout' onPress={logOut}/>
       </View>
 
@@ -118,6 +167,7 @@ const styles = StyleSheet.create({
   },
   header: {
     color: '#fff',
+    fontSize: 30
 
   },
   startBtnContainer: {
@@ -138,11 +188,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  spokenWords: {
+
+  counter: {
     color: '#fff',
-    
-
-
+    fontSize: 20,
   },
 
  

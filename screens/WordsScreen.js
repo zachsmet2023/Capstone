@@ -7,7 +7,7 @@ export default function WordsScreen({ navigation, route }) {
     <View style={styles.container}>
    <Text>Words</Text>
 
-   <Button title='TO HOME' color={'#fff'} onPress={() => navigation.push("Home")}/>
+   <Button title='TO HOME' onPress={() => navigation.pop()}/>
     </View>
   );
 }

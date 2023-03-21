@@ -1,4 +1,5 @@
 {
-    "catONE":["apple", "banana"],
-    "catTWO":["orange", "mango"]
+    "catONE": ["apple", "banana", "cherry", "grape", "kiwi", "lemon"],
+    "catTWO": ["orange", "mango", "pear", "pineapple", "strawberry", "watermelon"]
+
 }
