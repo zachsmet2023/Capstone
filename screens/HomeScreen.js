@@ -68,41 +68,65 @@ const HomeScreen = ({navigation}) => {
     });
   }
 
-  let sendSenseToServer = async () => {
-    try {
-      const senseRef = doc(collection(db, "sense"), auth.currentUser.uid);
-      const docSnapshot = await getDoc(senseRef);
-      const currentDate = new Date();
-      const currentWeek = getWeekNumber(currentDate);
-      const currentMonth = currentDate.getMonth() + 1;
-      const currentYear = currentDate.getFullYear();
-  
-      let currentSense = 0;
-      let sensePerWeek = {};
-      let sensePerMonth = {};
-      let sensePerYear = {};
-      if (docSnapshot.exists()) {
-        const data = docSnapshot.data();
-        currentSense = data.totalSense || 0;
-        sensePerWeek = data.sensePerWeek || {};
-        sensePerMonth = data.sensePerMonth || {};
-        sensePerYear = data.sensePerYear || {};
+  /*
+    Creates a new doc in the sense collection then reterives it if one
+    already exists. The week, month, and year is then gatherd.
+    If the doc exists the values taken then updated with the new count and sent
+  */
+    let sendSenseToServer = async () => {
+      try {
+        const senseRef = doc(collection(db, "sense"), auth.currentUser.uid);
+        const docSnapshot = await getDoc(senseRef);
+        const currentDate = new Date();
+        const currentWeek = getWeekNumber(currentDate);
+        const currentMonth = currentDate.getMonth() + 1;
+        const currentYear = currentDate.getFullYear();
+    
+        let currentSense = 0;
+        let sensePerWeek = {};
+        let sensePerMonth = {};
+        let sensePerYear = {};
+        let minMaxSensePerWeek = {};
+        let minMaxSensePerMonth = {};
+        let minMaxSensePerYear = {};
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data();
+          currentSense = data.totalSense || 0;
+          sensePerWeek = data.sensePerWeek || {};
+          sensePerMonth = data.sensePerMonth || {};
+          sensePerYear = data.sensePerYear || {};
+          minMaxSensePerWeek = data.minMaxSensePerWeek || {};
+          minMaxSensePerMonth = data.minMaxSensePerMonth || {};
+          minMaxSensePerYear = data.minMaxSensePerYear || {};
+        }
+    
+        const newSense = count;
+        const totalSense = currentSense + newSense;
+        sensePerWeek[currentWeek] = (sensePerWeek[currentWeek] || 0) + newSense;
+        sensePerMonth[currentMonth] = (sensePerMonth[currentMonth] || 0) + newSense;
+        sensePerYear[currentYear] = (sensePerYear[currentYear] || 0) + newSense;
+    
+        minMaxSensePerWeek[currentWeek] = updateMinMax(minMaxSensePerWeek[currentWeek] || {}, newSense);
+        minMaxSensePerMonth[currentMonth] = updateMinMax(minMaxSensePerMonth[currentMonth] || {}, newSense);
+        minMaxSensePerYear[currentYear] = updateMinMax(minMaxSensePerYear[currentYear] || {}, newSense);
+    
+        await setDoc(senseRef, { totalSense, sensePerWeek, sensePerMonth, sensePerYear, minMaxSensePerWeek, minMaxSensePerMonth, minMaxSensePerYear }, { merge: true });
+        console.log("Sense value updated.");
+      } catch (e) {
+        console.error("Error updating sense value: ", e);
       }
+    };
+    
+    const updateMinMax = (minMax, value) => {
+      const { min, max } = minMax;
+      return {
+        min: min === undefined ? value : Math.min(min, value),
+        max: max === undefined ? value : Math.max(max, value),
+      };
+    };
+    
   
-      const newSense = count;
-      const totalSense = currentSense + newSense;
-      sensePerWeek[currentWeek] = (sensePerWeek[currentWeek] || 0) + newSense;
-      sensePerMonth[currentMonth] = (sensePerMonth[currentMonth] || 0) + newSense;
-      sensePerYear[currentYear] = (sensePerYear[currentYear] || 0) + newSense;
-  
-      await setDoc(senseRef, { totalSense, sensePerWeek, sensePerMonth, sensePerYear }, { merge: true });
-      console.log("Sense value updated.");
-    } catch (e) {
-      console.error("Error updating sense value: ", e);
-    }
-  };
-  
-  //Found Online 
+  //Found Online GeeksForGeeks.com
   const getWeekNumber = (date) => {
     const onejan = new Date(date.getFullYear(), 0, 1);
     return Math.ceil((((date - onejan) / 86400000) + onejan.getDay() + 1) / 7);
@@ -143,6 +167,7 @@ const HomeScreen = ({navigation}) => {
 
       <View>
         <Button title='Words Page' onPress={() => navigation.push("Words")}/>
+        <Button title='Profile' onPress={() => navigation.push("Profile")}/>
         <Button title='Logout' onPress={logOut}/>
       </View>
 

@@ -7,14 +7,17 @@ import {auth} from '../firebase'
 
 export default function SignUpScreen({ navigation, route }) {
   
-    //VARIBLES
+    //---------Varibles-------------
 let [ Email, setEmail] = useState("");
 let [ password, setPassword] = useState("");
 let [ conPassword, setConPassword] = useState("");
 let [ errorMessage, setErrorMessage] = useState("");
 
-    //METHODS
-
+     //---------METHODS-------------
+/*
+  @Param: value to be compaired 
+  @Retrun: 
+*/
 let confirmAndSet = (value, conVal, setValue) => {
     if(value != conVal)
         setErrorMessage("Passwords Don't Match");
@@ -25,6 +28,9 @@ let confirmAndSet = (value, conVal, setValue) => {
     
 }
 
+/*
+  Function given by Firebase
+*/
 let signUp = () => {
     if (password ===conPassword){
         createUserWithEmailAndPassword(auth, Email, password)
@@ -43,7 +49,7 @@ let signUp = () => {
 
 
 
-    // MARKUP
+     //---------MARKUP-------------
   return (
     <View style={styles.container}>
 
@@ -76,7 +82,7 @@ let signUp = () => {
 }
 
 
-//STYLES
+ //---------STYLES-------------
 const styles = StyleSheet.create({
     container: {
         flex: 1,

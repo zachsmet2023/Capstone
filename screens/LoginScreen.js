@@ -7,12 +7,17 @@ import {auth} from '../firebase'
 
 export default function LoginScreen({ navigation, route }) {
   
-    //VARIBLES
+   //---------Varibles-------------
 let [ Email, setEmail] = useState("");
 let [ password, setPassword] = useState("");
 let [ errorMessage, setErrorMessage] = useState("");
-    //METHODS
 
+    //---------Methods-------------
+
+
+/*
+  Function given by Firebase
+*/
 let login = () =>{
   if (Email != "" && password != ""){
     signInWithEmailAndPassword(auth, Email, password)
@@ -29,7 +34,7 @@ let login = () =>{
 
 
 
-    // MARKUP
+   //---------MARKUP-------------
   return (
     <View style={styles.container}>
 
@@ -55,7 +60,7 @@ let login = () =>{
 }
 
 
-//STYLES
+ //---------STYLES-------------
 const styles = StyleSheet.create({
     container: {
         flex: 1,
