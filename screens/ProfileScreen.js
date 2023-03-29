@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Button } from 'react-native';
+import { View, Text, StyleSheet, Button } from 'react-native';
 import { collection,doc, getDoc} from 'firebase/firestore';
+import { signOut } from "firebase/auth";
 import { auth,db } from '../firebase';
 
 
@@ -13,16 +14,14 @@ const ProfileScreen = ({navigation}) => {
 
 
    useEffect(() => {
-
     fetchTotal();
-    
-    
   });
 
 
 
 
     const fetchTotal = async () => {
+      try{
         const senseRef = doc(collection(db, "sense"), auth.currentUser.uid);
         const docSnapshot = await getDoc(senseRef);
         if (docSnapshot.exists()) {
@@ -33,6 +32,9 @@ const ProfileScreen = ({navigation}) => {
         else{
             setTotal(0);
         }
+      }catch(e){
+        console.error("Error fetching data: ", e);
+      }
     }
 
 
@@ -71,19 +73,29 @@ const ProfileScreen = ({navigation}) => {
        const onejan = new Date(date.getFullYear(), 0, 1);
        return Math.ceil((((date - onejan) / 86400000) + onejan.getDay() + 1) / 7);
      };
+
+     let logOut = () =>{
+      signOut(auth).then(() => {
+        navigation.popToTop();
+      }).catch((error) => {
+        // An error happened.
+      });
+    }
     
     return (
      <View style={styles.container}>
+
+        <Button title='Logout' onPress={logOut}/>
 
         <Text style={styles.dataText}>Total Sense: {total}</Text>
 
         <View style={styles.dataContainer}>
             {data && (
-                <View style={styles.dataContainer}>
+              <View style={styles.dataContainer}>
                 <Text style={styles.dataText} >Sense: {data.sense}</Text>
                 <Text style={styles.dataText}>Min: {data.minMax.min}</Text>
                 <Text style={styles.dataText}>Max: {data.minMax.max}</Text>
-                </View>
+              </View>
             )}
         </View>
 
