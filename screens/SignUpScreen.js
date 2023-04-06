@@ -15,8 +15,8 @@ let [ errorMessage, setErrorMessage] = useState("");
 
      //---------METHODS-------------
 /*
-  @Param: value to be compaired 
-  @Retrun: 
+  checks if values match and will set the apporpiate error message
+  or set the value if equal
 */
 let confirmAndSet = (value, conVal, setValue) => {
     if(value != conVal)
@@ -29,7 +29,7 @@ let confirmAndSet = (value, conVal, setValue) => {
 }
 
 /*
-  Function given by Firebase
+  Adapted from firebase auth Documentation
 */
 let signUp = () => {
     if (password ===conPassword){

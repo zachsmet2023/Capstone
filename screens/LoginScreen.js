@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, Button, TextInput } from 'react-native';
 import { useEffect, useState } from 'react';
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword,onAuthStateChanged } from "firebase/auth";
 import {auth} from '../firebase'
 
 
@@ -14,9 +14,22 @@ let [ errorMessage, setErrorMessage] = useState("");
 
     //---------Methods-------------
 
+/*
+  Adapted from Firebase Auth documentation
+  If the user has signed in previously this will auto login 
+*/
+    if (auth.currentUser) { 
+      navigation.navigate("Home");
+    } else {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          navigation.navigate("Home");
+        }
+      });
+    }
 
 /*
-  Function given by Firebase
+  Adapted from Firebase Auth documentation
 */
 let login = () =>{
   if (Email != "" && password != ""){

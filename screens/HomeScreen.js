@@ -1,11 +1,15 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, Button, View, SafeAreaView } from 'react-native';
-import { useEffect, useState } from 'react';
+import { StyleSheet, Text, Button, View, SafeAreaView,TouchableOpacity,PanResponder,Animated } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+
 import Voice from '@react-native-voice/voice';
+
 import SenseCounter from '../components/senseCounter';
-import { signOut } from "firebase/auth";
+
+
 import { auth, db } from '../firebase';
 import { collection,doc, getDoc, setDoc } from 'firebase/firestore';
+
 
 
 
@@ -13,40 +17,120 @@ const HomeScreen = ({navigation}) => {
 
 
   //---------Varibles-------------
-  let [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(false);
   let [results, setResults] = useState(['Empty']);
   let [count, setCount] = useState(0);
+  let [spokenWords, setSpokenWords] = useState([]);
+  let [storedSpokenWords, setStoredSpokenWords] = useState([]);
+  const translateY = useRef(new Animated.Value(0)).current;
+
   
 
   //----------Listeners------------ 
   useEffect(() => {
+    fetchSpokenWords();
     Voice.onSpeechError = onSpeechError;
     Voice.onSpeechResults = onSpeechResults;
-    
-
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
     }
   }, []);
 
-
+ 
 //-----------METHODS----------------
 
-// Func will start speech to text listening for US english and then set started to true 
+
+
+
+
+
+const panResponder = useRef(
+  PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dy) > 10;
+    },
+    onPanResponderMove: Animated.event(
+      [null, {dy: translateY}],
+      {useNativeDriver: false},
+    ),
+    onPanResponderRelease: (evt, gestureState) => {
+      if (
+        Math.abs(gestureState.dx) < Math.abs(gestureState.dy) && // vertical swipe
+        gestureState.dy < -50 // swipe distance exceeds threshold
+      ) {
+     
+          startSpeechToText();
+      
+      }
+      Animated.spring(translateY, {
+        toValue: 0,
+        tension: 40,
+        friction: 5,
+        useNativeDriver: false,
+      }).start();
+    },
+    
+    
+    
+  }),
+).current;
+
+const panResponderFalse = useRef(
+  PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dy) > 10;
+    },
+    onPanResponderMove: Animated.event(
+      [null, {dy: translateY}],
+      {useNativeDriver: false},
+    ),
+    onPanResponderRelease: (evt, gestureState) => {
+      if (
+        Math.abs(gestureState.dx) < Math.abs(gestureState.dy) && // vertical swipe
+        gestureState.dy < -50 // swipe distance exceeds threshold
+      ) {
+     
+          stopSpeechToText();
+      
+      }
+      Animated.spring(translateY, {
+        toValue: 0,
+        tension: 40,
+        friction: 5,
+        useNativeDriver: false,
+      }).start();
+    },
+    
+    
+    
+  }),
+).current;
+
+
+/* 
+Code Adapted From React Native Voice Documentation
+*/
+//---------------------------------------------------
   const startSpeechToText = async () => {
     await Voice.start("en-US");
     setStarted(true);
+    setResults(['Empty']);
+    fetchSpokenWords();
   };
 
-  // Func will stop speech to text set started to false 
+ 
   const stopSpeechToText = async () => {
     await Voice.stop();
     setStarted(false);
     sendSenseToServer();
+    sendSpokenWordsToServer();
+    setResults(['Empty']);
+  
     
+  
   };
 
-  // Will set the results of the speech to text to results varible array
+ 
   const onSpeechResults = (result) => {
     setResults(result.value);
 
@@ -55,23 +139,30 @@ const HomeScreen = ({navigation}) => {
   const onSpeechError = (error) => {
     console.log(error);
   };
+//----------------------------------------------------
 
+
+/* 
+When count changes in senseCounter Comp this func will update the 
+sense that is stored in the db
+*/
   const handleCountChange = (newCount) => {
     setCount(newCount);
   };
 
-  let logOut = () =>{
-    signOut(auth).then(() => {
-      navigation.popToTop();
-    }).catch((error) => {
-      // An error happened.
-    });
-  }
-
+/* 
+When a valid word is spoken the senseCounter comp will send it over here
+and at the end of the talking session these words will be uploaded to the db
+*/
+  const handleSpokenWord = (newWord) => {
+    setSpokenWords(prevSpokenWords => [...prevSpokenWords, newWord]);
+   
+  };
+  
   /*
-    Creates a new doc in the sense collection then reterives it if one
-    already exists. The week, month, and year is then gatherd.
-    If the doc exists the values taken then updated with the new count and sent
+    Pulls and updates sense from the db
+    will store min/max/total for Week, Month, Year
+    Pull and update structure adapted from Firebase documentation
   */
     let sendSenseToServer = async () => {
       try {
@@ -112,11 +203,15 @@ const HomeScreen = ({navigation}) => {
     
         await setDoc(senseRef, { totalSense, sensePerWeek, sensePerMonth, sensePerYear, minMaxSensePerWeek, minMaxSensePerMonth, minMaxSensePerYear }, { merge: true });
         console.log("Sense value updated.");
+        setCount(0);
       } catch (e) {
         console.error("Error updating sense value: ", e);
       }
     };
     
+  /* 
+  Update the min and max value object 
+  */
     const updateMinMax = (minMax, value) => {
       const { min, max } = minMax;
       return {
@@ -133,48 +228,122 @@ const HomeScreen = ({navigation}) => {
   };
   
 
+/* 
+Pulls and updates spoken words from db
+Pull and update structure adapted from Firebase documentation
+*/
+  const sendSpokenWordsToServer = async () => {
+    try {
+      const wordsRef = doc(collection(db, "spokenWords"), auth.currentUser.uid);
+      const docSnapshot = await getDoc(wordsRef);
 
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+        const currentWords = data.words || [];
+        const newWords = spokenWords;
 
- 
+        let filteredNewWords = newWords.filter(word => !currentWords.includes(word));
+
+        await setDoc(wordsRef, { words: [...currentWords, ...filteredNewWords] }, { merge: true });
+        console.log("Spoken words updated.");
+        setResults(['Empty']);
+      } else {
+        await setDoc(wordsRef, { words: spokenWords }, { merge: true });
+        console.log("Spoken words created.");
+      }
+    } catch (e) {
+      console.error("Error updating spoken words: ", e);
+    }
+  };
+
+/* 
+Fetches stored spoken words from db used in the senseCounter comp
+for checking if word has been said already
+*/
+  const fetchSpokenWords = async () => {
+    try {
+      const wordsRef = doc(collection(db, "spokenWords"), auth.currentUser.uid);
+      const docSnapshot = await getDoc(wordsRef);
+
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+        const fetchedWords = data.words || [];
+        setStoredSpokenWords(fetchedWords);
+        console.log("Spoken words fetched.");
+      } else {
+        console.log("No spoken words data found.");
+      }
+    } catch (e) {
+      console.error("Error fetching spoken words: ", e);
+    }
+  };
 
 
   // ------------- MARKUP -------------------
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
 
-    <SafeAreaView style={styles.headerContainer}> 
-      <Text style={styles.header}>SpeakSence</Text>
-    </SafeAreaView>
+    <View style={styles.headerContainer}> 
+      <Text style={styles.headerText}>SpeakSence</Text>
+    </View>
+
+    <View style={styles.linkContainer}>
+
+      <TouchableOpacity style={styles.button} onPress={() => navigation.push("Profile")}>
+        <Text style={styles.linkText}>Profile</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.button} onPress={() => navigation.push("Words")}>
+        <Text style={styles.linkText}>Words</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.button} onPress={() => navigation.push("Leader")}>
+        <Text style={styles.linkText}>Score</Text>
+      </TouchableOpacity>
+        
+        
+    </View>
 
     
-    {!started ? 
-    <View style={styles.startBtnContainer}>
-      <Button title='Start' color={'#fff'} onPress={startSpeechToText} /> 
-    </View>
-    : undefined}
+    <View style={styles.counterContainer}>
+    
+
 
     {started ? 
       <View style={styles.stopBtnContainer}>
-        <Button title='Stop' color={'#fff'} onPress={stopSpeechToText} /> 
-      </View>
-    : undefined}
+      <SenseCounter  wordList={results} onCountChange={handleCountChange} 
+      resetCount={started} onSpokenWord={handleSpokenWord} storedSpoken={storedSpokenWords}/>
+     </View>
+    : <View style={styles.startBtnContainer}></View>
+      }
+
+     </View>
+
+      {!started ?  <Animated.View
+          style={[
+            styles.swiperContainer,
+            { transform: [{ translateY: translateY }] },
+          ]}
+          {...panResponder.panHandlers} // attach panHandlers here
+        >
+          <Text>Swipe Up To Start</Text>
+    </Animated.View>: <Animated.View
+          style={[
+            styles.swiperContainer,
+            { transform: [{ translateY: translateY }] },
+          ]}
+          {...panResponderFalse.panHandlers} // attach panHandlers here
+        >
+          <Text>Swipe Up To Stop</Text>
+    </Animated.View> }
+
+    
 
 
-      <View>
-       <SenseCounter  wordList={results} onCountChange={handleCountChange} resetCount={started}/>
-      
-      </View>
 
-      <View>
-        <Button title='Words Page' onPress={() => navigation.push("Words")}/>
-        <Button title='Profile' onPress={() => navigation.push("Profile")}/>
-        <Button title='Logout' onPress={logOut}/>
-      </View>
-
-        
 
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -184,40 +353,70 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#061024',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   headerContainer: {
-    
+    marginBottom: 90,
+  },
+  headerText: {
+    paddingTop: 10,
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#fff',
 
   },
-  header: {
-    color: '#fff',
-    fontSize: 30
 
+  linkContainer: {
+    flexDirection: 'row', 
+    justifyContent: 'space-between',
+    width: '80%',
+    marginBottom: 70
+  },
+  button:{
+    backgroundColor: '#55C89F',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  linkText: {
+    color: '#fff'
   },
   startBtnContainer: {
     backgroundColor: '#55C89F',
-    width: 80,
-    height: 80,
-    borderRadius: 80/2,
+    width: 200,
+    height: 200,
+    borderRadius: 200/2,
     alignItems: 'center',
     justifyContent: 'center',
 
   },
   stopBtnContainer: {
     backgroundColor: '#FF0000',
-    width: 80,
-    height: 80,
-    borderRadius: 80/2,
+    width: 200,
+    height: 200,
+    borderRadius: 200/2,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-
+  counterContainer:{
+    
+    alignItems: 'center',
+    padding: 20,
+    width: '50%',
+    height: '40%'
+  },
   counter: {
     color: '#fff',
     fontSize: 20,
   },
+  swiperContainer:{
+    alignItems: 'center',
+    backgroundColor:'#fff',
+    width: '100%',
+    height: '50%',
+    borderRadius: 40
+  }
 
  
 });
