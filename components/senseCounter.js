@@ -19,13 +19,15 @@ const SenseCounter = React.memo(({ wordList, onCountChange, resetCount,onSpokenW
   //---------LISTENERS-------------
   useEffect(() => {
     
-    const words = wordList[0].split(' ');
+    let words = wordList[0].split(' ');
     const newCount = countWordsInList(words);
+    if (newCount!=0){
     setCount((prevCount) => prevCount + newCount);
-    onCountChange(prevCount => prevCount + newCount);
+    onCountChange(newCount);
+    }
     
    
-  }, [wordList, onCountChange, count, resetCount]);
+  }, [wordList]);
 
   useEffect(() => {
     
@@ -37,17 +39,22 @@ const SenseCounter = React.memo(({ wordList, onCountChange, resetCount,onSpokenW
   //---------METHODS-------------
   const countWordsInList = useCallback((list) => {
     let count = 0;
+    console.log("LIST O WORDS: ", list);
     list.forEach((word) => {
-      if (catOneWords.includes(word.toLowerCase()) && !storedSpoken.includes(word.toLowerCase()) && !currentSpoken.includes(word.toLowerCase())) {
-        onSpokenWord(word.toLowerCase()); // adds to list to be sent to server
-        setCurrentSpoken(prevSpokenWords => [...prevSpokenWords, word.toLowerCase()]); // adds to local list to check against
+      let lowCaseWord = word.toLowerCase();
+      if (catOneWords.includes(lowCaseWord) && !storedSpoken.includes(lowCaseWord) && !currentSpoken.includes(lowCaseWord)) {
+        console.log("INCOMING WORD: ", word);
+        onSpokenWord(lowCaseWord); // adds to list to be sent to server
+        setCurrentSpoken(prevSpokenWords => [...prevSpokenWords, lowCaseWord]); // adds to local list to check against
         count++;
       }
-      if (catTwoWords.includes(word.toLowerCase()) && !storedSpoken.includes(word.toLowerCase())&& !currentSpoken.includes(word.toLowerCase())) {
-        onSpokenWord(word.toLowerCase());
-        setCurrentSpoken(prevSpokenWords => [...prevSpokenWords, word.toLowerCase()]);
+      if (catTwoWords.includes(lowCaseWord) && !storedSpoken.includes(lowCaseWord)&& !currentSpoken.includes(lowCaseWord)) {
+        onSpokenWord(lowCaseWord);
+        setCurrentSpoken(prevSpokenWords => [...prevSpokenWords,lowCaseWord]);
         count += 2;
       }
+      
+
     });
 
     

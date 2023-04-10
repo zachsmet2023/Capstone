@@ -17,11 +17,10 @@ const HomeScreen = ({navigation}) => {
 
 
   //---------Varibles-------------
-  const [started, setStarted] = useState(false);
-  let [results, setResults] = useState(['Empty']);
-  let [count, setCount] = useState(0);
-  let [spokenWords, setSpokenWords] = useState([]);
-  let [storedSpokenWords, setStoredSpokenWords] = useState([]);
+  let [started, setStarted] = useState(false); // boolean for start and stop
+  let [results, setResults] = useState(['Empty']);// all words spoken
+  let [spokenWords, setSpokenWords] = useState([]); // spoken words that match a catword
+  let [storedSpokenWords, setStoredSpokenWords] = useState([]); // words from db
   const translateY = useRef(new Animated.Value(0)).current;
 
   
@@ -36,13 +35,27 @@ const HomeScreen = ({navigation}) => {
     }
   }, []);
 
+  /*
+  Sends the word to the server imiditaly after 
+  it is said so it can reflect everywhere
+  */
+  useEffect(() => {
+    if (started) {
+      
+      sendSpokenWordsToServer();
+    }
+  }, [spokenWords]);
+
+
  
 //-----------METHODS----------------
 
 
 
 
-
+/*
+Functions handle the slide up to start and stop 
+*/
 
 const panResponder = useRef(
   PanResponder.create({
@@ -58,7 +71,6 @@ const panResponder = useRef(
         Math.abs(gestureState.dx) < Math.abs(gestureState.dy) && // vertical swipe
         gestureState.dy < -50 // swipe distance exceeds threshold
       ) {
-     
           startSpeechToText();
       
       }
@@ -91,7 +103,7 @@ const panResponderFalse = useRef(
       ) {
      
           stopSpeechToText();
-      
+          
       }
       Animated.spring(translateY, {
         toValue: 0,
@@ -122,12 +134,8 @@ Code Adapted From React Native Voice Documentation
   const stopSpeechToText = async () => {
     await Voice.stop();
     setStarted(false);
-    sendSenseToServer();
-    sendSpokenWordsToServer();
     setResults(['Empty']);
-  
-    
-  
+    fetchSpokenWords();
   };
 
  
@@ -147,14 +155,16 @@ When count changes in senseCounter Comp this func will update the
 sense that is stored in the db
 */
   const handleCountChange = (newCount) => {
-    setCount(newCount);
+    console.log("INCOMING SCORE: ", newCount);
+    sendSenseToServer(newCount);
   };
 
 /* 
 When a valid word is spoken the senseCounter comp will send it over here
-and at the end of the talking session these words will be uploaded to the db
+and these words will be uploaded to the db
 */
   const handleSpokenWord = (newWord) => {
+    
     setSpokenWords(prevSpokenWords => [...prevSpokenWords, newWord]);
    
   };
@@ -164,7 +174,7 @@ and at the end of the talking session these words will be uploaded to the db
     will store min/max/total for Week, Month, Year
     Pull and update structure adapted from Firebase documentation
   */
-    let sendSenseToServer = async () => {
+    let sendSenseToServer = async (newCount) => {
       try {
         const senseRef = doc(collection(db, "sense"), auth.currentUser.uid);
         const docSnapshot = await getDoc(senseRef);
@@ -180,6 +190,7 @@ and at the end of the talking session these words will be uploaded to the db
         let minMaxSensePerWeek = {};
         let minMaxSensePerMonth = {};
         let minMaxSensePerYear = {};
+
         if (docSnapshot.exists()) {
           const data = docSnapshot.data();
           currentSense = data.totalSense || 0;
@@ -190,8 +201,8 @@ and at the end of the talking session these words will be uploaded to the db
           minMaxSensePerMonth = data.minMaxSensePerMonth || {};
           minMaxSensePerYear = data.minMaxSensePerYear || {};
         }
-    
-        const newSense = count;
+        
+        const newSense = newCount;
         const totalSense = currentSense + newSense;
         sensePerWeek[currentWeek] = (sensePerWeek[currentWeek] || 0) + newSense;
         sensePerMonth[currentMonth] = (sensePerMonth[currentMonth] || 0) + newSense;
@@ -203,7 +214,7 @@ and at the end of the talking session these words will be uploaded to the db
     
         await setDoc(senseRef, { totalSense, sensePerWeek, sensePerMonth, sensePerYear, minMaxSensePerWeek, minMaxSensePerMonth, minMaxSensePerYear }, { merge: true });
         console.log("Sense value updated.");
-        setCount(0);
+        
       } catch (e) {
         console.error("Error updating sense value: ", e);
       }
@@ -241,7 +252,9 @@ Pull and update structure adapted from Firebase documentation
         const data = docSnapshot.data();
         const currentWords = data.words || [];
         const newWords = spokenWords;
-
+        
+      
+        //The Cure to the double words
         let filteredNewWords = newWords.filter(word => !currentWords.includes(word));
 
         await setDoc(wordsRef, { words: [...currentWords, ...filteredNewWords] }, { merge: true });
@@ -326,7 +339,7 @@ for checking if word has been said already
           ]}
           {...panResponder.panHandlers} // attach panHandlers here
         >
-          <Text>Swipe Up To Start</Text>
+          <Text style={styles.swiperText}>Swipe Up To Start</Text>
     </Animated.View>: <Animated.View
           style={[
             styles.swiperContainer,
@@ -334,7 +347,7 @@ for checking if word has been said already
           ]}
           {...panResponderFalse.panHandlers} // attach panHandlers here
         >
-          <Text>Swipe Up To Stop</Text>
+          <Text style={styles.swiperText}>Swipe Up To Stop</Text>
     </Animated.View> }
 
     
@@ -415,8 +428,15 @@ const styles = StyleSheet.create({
     backgroundColor:'#fff',
     width: '100%',
     height: '50%',
-    borderRadius: 40
-  }
+    borderRadius: 40,
+    backgroundColor: '#141B30'
+  },
+  swiperText:{
+    paddingTop: 10,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
 
  
 });
